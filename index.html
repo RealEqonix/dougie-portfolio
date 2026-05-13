@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dougie</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #07070d;
+      --surface: #0e0e1a;
+      --surface2: #13131f;
+      --border: #1c1c2e;
+      --border-lit: #3a2f6a;
+      --text: #ddddf5;
+      --subtle: #6b6b99;
+      --accent: #8b6ef5;
+      --accent2: #c084fc;
+      --glow: rgba(139, 110, 245, 0.25);
+      --glow-soft: rgba(139, 110, 245, 0.08);
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      cursor: none;
+      user-select: none;
+    }
+
+    /* ── Custom cursor ── */
+    #cursor {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent2);
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      transition: transform 0.05s, width 0.2s, height 0.2s, opacity 0.2s;
+      mix-blend-mode: screen;
+    }
+
+    #cursor-ring {
+      position: fixed;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(139, 110, 245, 0.5);
+      pointer-events: none;
+      z-index: 9998;
+      transform: translate(-50%, -50%);
+      transition: transform 0.12s ease-out, width 0.2s, height 0.2s, border-color 0.2s;
+    }
+
+    /* ── Cursor spotlight (follows mouse) ── */
+    #spotlight {
+      position: fixed;
+      pointer-events: none;
+      z-index: 0;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(139,110,245,0.12) 0%, rgba(192,132,252,0.05) 30%, transparent 70%);
+      transform: translate(-50%, -50%);
+      transition: opacity 0.3s;
+    }
+
+    /* ── Animated background grid ── */
+    #bg-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      opacity: 0.6;
+    }
+
+    /* ── Main content ── */
+    main {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 480px;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    /* ── Name block ── */
+    .name-block {
+      text-align: center;
+      margin-bottom: 2.5rem;
+      position: relative;
+    }
+
+    .name-block h1 {
+      font-size: clamp(3rem, 12vw, 5rem);
+      font-weight: 700;
+      letter-spacing: -2px;
+      line-height: 1;
+      background: linear-gradient(135deg, #fff 20%, var(--accent2) 60%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      position: relative;
+    }
+
+    /* glitch flicker on name */
+    .name-block h1::after {
+      content: attr(data-text);
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent 20%, rgba(192,132,252,0.3) 60%, transparent 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: glitch 6s infinite;
+      pointer-events: none;
+    }
+
+    @keyframes glitch {
+      0%, 94%, 100% { clip-path: inset(100% 0 0 0); transform: none; }
+      95% { clip-path: inset(30% 0 50% 0); transform: translate(-2px, 1px); }
+      96% { clip-path: inset(60% 0 10% 0); transform: translate(2px, -1px); }
+      97% { clip-path: inset(10% 0 80% 0); transform: translate(-1px, 0); }
+    }
+
+    .tagline {
+      margin-top: 0.6rem;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--subtle);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    /* ── Links ── */
+    .links {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .link-item {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      padding: 0.9rem 1.1rem;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      text-decoration: none;
+      color: var(--text);
+      background: var(--surface);
+      transition: border-color 0.25s, background 0.25s, transform 0.15s, box-shadow 0.25s;
+      position: relative;
+      overflow: hidden;
+      cursor: none;
+    }
+
+    /* shimmer sweep on hover */
+    .link-item::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.04) 50%, transparent 60%);
+      transform: translateX(-100%);
+      transition: transform 0.5s ease;
+      pointer-events: none;
+    }
+
+    .link-item:hover::before {
+      transform: translateX(100%);
+    }
+
+    .link-item:hover {
+      border-color: var(--border-lit);
+      background: var(--surface2);
+      transform: translateY(-2px) scale(1.01);
+      box-shadow: 0 0 24px var(--glow-soft), 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    .link-item:active {
+      transform: translateY(0) scale(0.99);
+    }
+
+    .link-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+
+    .link-item:hover .link-icon {
+      border-color: var(--accent);
+      box-shadow: 0 0 10px var(--glow);
+    }
+
+    .link-icon svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .link-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      flex: 1;
+    }
+
+    .link-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--subtle);
+    }
+
+    .link-value {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text);
+      transition: color 0.2s;
+    }
+
+    .link-item:hover .link-value {
+      color: #fff;
+    }
+
+    .link-arrow {
+      color: var(--subtle);
+      font-size: 1rem;
+      transform: translateX(0);
+      transition: transform 0.2s, color 0.2s;
+    }
+
+    .link-item:hover .link-arrow {
+      transform: translateX(3px);
+      color: var(--accent2);
+    }
+
+    /* copy btn */
+    .copy-btn {
+      padding: 0.28rem 0.6rem;
+      border: 1px solid var(--border-lit);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--subtle);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.05em;
+      cursor: none;
+      transition: border-color 0.2s, color 0.2s, box-shadow 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+      text-transform: uppercase;
+    }
+
+    .copy-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent2);
+      box-shadow: 0 0 8px var(--glow);
+    }
+
+    .copy-btn.copied {
+      border-color: #34d399;
+      color: #34d399;
+      box-shadow: 0 0 8px rgba(52,211,153,0.3);
+    }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: 2rem;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: #2e2e48;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    /* ── Fade-in on load ── */
+    main {
+      animation: fadeUp 0.6s ease both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 420px) {
+      main { padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Cursor elements -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<div id="spotlight"></div>
+
+<!-- Animated grid background -->
+<canvas id="bg-canvas"></canvas>
+
+<main>
+  <div class="name-block">
+    <h1 data-text="Dougie">Dougie</h1>
+    <p class="tagline">Open to opportunities &amp; collabs</p>
+  </div>
+
+  <nav class="links">
+
+    <!-- X -->
+    <a class="link-item" href="https://x.com/LaTheodor15944" target="_blank" rel="noopener">
+      <div class="link-icon">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M17.751 3h3.067l-6.7 7.658L22 21h-6.172l-4.833-6.32L5.464 21H2.395l7.167-8.19L2 3h6.328l4.37 5.779L17.751 3zm-1.076 16.17h1.7L7.404 4.742H5.58l11.095 14.428z" fill="#ddddf5"/></svg>
+      </div>
+      <div class="link-meta">
+        <span class="link-label">X / Twitter</span>
+        <span class="link-value">@LaTheodor15944</span>
+      </div>
+      <span class="link-arrow">→</span>
+    </a>
+
+    <!-- Discord -->
+    <div class="link-item" tabindex="0">
+      <div class="link-icon">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M20.317 4.492c-1.53-.69-3.17-1.2-4.885-1.49a.075.075 0 0 0-.079.036c-.21.369-.444.85-.608 1.23a18.566 18.566 0 0 0-5.487 0 12.36 12.36 0 0 0-.617-1.23A.077.077 0 0 0 8.562 3c-1.714.29-3.354.8-4.885 1.491a.07.07 0 0 0-.032.027C.533 9.093-.32 13.555.099 17.961a.08.08 0 0 0 .031.055 20.03 20.03 0 0 0 5.993 2.98.078.078 0 0 0 .084-.026c.462-.62.874-1.275 1.226-1.963a.074.074 0 0 0-.041-.104 13.201 13.201 0 0 1-1.872-.878.075.075 0 0 1-.008-.125c.126-.093.252-.19.372-.287a.075.075 0 0 1 .078-.01c3.927 1.764 8.18 1.764 12.061 0a.075.075 0 0 1 .079.009c.12.098.245.195.372.288a.075.075 0 0 1-.006.125c-.598.344-1.22.635-1.873.877a.075.075 0 0 0-.041.105c.36.687.772 1.341 1.225 1.962a.077.077 0 0 0 .084.028 19.963 19.963 0 0 0 6.002-2.981.076.076 0 0 0 .032-.054c.5-5.094-.838-9.52-3.549-13.442a.06.06 0 0 0-.031-.028zM8.02 15.278c-1.182 0-2.157-1.069-2.157-2.38 0-1.312.956-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.956 2.38-2.157 2.38zm7.975 0c-1.183 0-2.157-1.069-2.157-2.38 0-1.312.955-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.946 2.38-2.157 2.38z" fill="#5865F2"/></svg>
+      </div>
+      <div class="link-meta">
+        <span class="link-label">Discord</span>
+        <span class="link-value">theodor.la</span>
+      </div>
+      <button class="copy-btn" id="discord-copy" onclick="copyDiscord()" aria-label="Copy Discord username">Copy</button>
+    </div>
+
+    <!-- Email -->
+    <a class="link-item" href="mailto:theodorla8@gmail.com">
+      <div class="link-icon">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="3" stroke="#ddddf5" stroke-width="1.5"/><path d="M2 8l10 6 10-6" stroke="#ddddf5" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+      <div class="link-meta">
+        <span class="link-label">Email</span>
+        <span class="link-value">theodorla8@gmail.com</span>
+      </div>
+      <span class="link-arrow">→</span>
+    </a>
+
+  </nav>
+
+  <p class="footer">// dougie &mdash; 2026</p>
+</main>
+
+<script>
+  /* ── Custom cursor ── */
+  const dot   = document.getElementById('cursor');
+  const ring  = document.getElementById('cursor-ring');
+  const light = document.getElementById('spotlight');
+
+  let mx = -999, my = -999;
+  let rx = -999, ry = -999;
+
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX;
+    my = e.clientY;
+    dot.style.left   = mx + 'px';
+    dot.style.top    = my + 'px';
+    light.style.left = mx + 'px';
+    light.style.top  = my + 'px';
+  });
+
+  /* smooth ring follow */
+  (function animRing() {
+    rx += (mx - rx) * 0.12;
+    ry += (my - ry) * 0.12;
+    ring.style.left = rx + 'px';
+    ring.style.top  = ry + 'px';
+    requestAnimationFrame(animRing);
+  })();
+
+  /* cursor grow on hoverable elements */
+  document.querySelectorAll('a, button, .link-item, .copy-btn').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      dot.style.width   = '6px';
+      dot.style.height  = '6px';
+      dot.style.opacity = '0.6';
+      ring.style.width  = '52px';
+      ring.style.height = '52px';
+      ring.style.borderColor = 'rgba(192,132,252,0.7)';
+    });
+    el.addEventListener('mouseleave', () => {
+      dot.style.width   = '10px';
+      dot.style.height  = '10px';
+      dot.style.opacity = '1';
+      ring.style.width  = '36px';
+      ring.style.height = '36px';
+      ring.style.borderColor = 'rgba(139,110,245,0.5)';
+    });
+  });
+
+  /* ── Animated background ── */
+  const canvas = document.getElementById('bg-canvas');
+  const ctx    = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  /* Floating orbs */
+  const orbs = Array.from({ length: 5 }, () => ({
+    x: Math.random() * window.innerWidth,
+    y: Math.random() * window.innerHeight,
+    r: 180 + Math.random() * 220,
+    vx: (Math.random() - 0.5) * 0.3,
+    vy: (Math.random() - 0.5) * 0.3,
+    hue: 255 + Math.random() * 40,  /* purple-ish hues */
+  }));
+
+  /* Grid dots */
+  const GRID = 48;
+
+  let frame = 0;
+
+  function draw() {
+    frame++;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    /* orbs */
+    orbs.forEach(o => {
+      o.x += o.vx;
+      o.y += o.vy;
+      if (o.x < -o.r) o.x = canvas.width + o.r;
+      if (o.x > canvas.width + o.r) o.x = -o.r;
+      if (o.y < -o.r) o.y = canvas.height + o.r;
+      if (o.y > canvas.height + o.r) o.y = -o.r;
+
+      const g = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
+      g.addColorStop(0,   `hsla(${o.hue},70%,60%,0.07)`);
+      g.addColorStop(0.5, `hsla(${o.hue},60%,50%,0.03)`);
+      g.addColorStop(1,   'transparent');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    /* dot grid */
+    const cols = Math.ceil(canvas.width  / GRID) + 1;
+    const rows = Math.ceil(canvas.height / GRID) + 1;
+
+    for (let c = 0; c < cols; c++) {
+      for (let r = 0; r < rows; r++) {
+        const x = c * GRID;
+        const y = r * GRID;
+        /* proximity to mouse */
+        const dx = x - mx;
+        const dy = y - my;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        const proximity = Math.max(0, 1 - dist / 200);
+        /* idle pulse */
+        const pulse = 0.5 + 0.5 * Math.sin(frame * 0.01 + c * 0.4 + r * 0.4);
+        const alpha = 0.04 + pulse * 0.04 + proximity * 0.5;
+        const radius = 1 + proximity * 2;
+
+        ctx.fillStyle = `rgba(139,110,245,${alpha})`;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    requestAnimationFrame(draw);
+  }
+
+  draw();
+
+  /* ── Discord copy ── */
+  function copyDiscord() {
+    navigator.clipboard.writeText('theodor.la').then(() => {
+      const btn = document.getElementById('discord-copy');
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+</script>
+
+</body>
+</html>
